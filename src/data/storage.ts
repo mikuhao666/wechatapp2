@@ -1,8 +1,14 @@
 import { Application, WorkflowLog, CertificateDraft } from '../types';
 import { INITIAL_APPLICATIONS } from './mockData';
+import { 
+  fetchApplicationsFromCloud, 
+  saveApplicationToCloud, 
+  submitCloudCertificateDraft, 
+  approveCloudCertificate, 
+  rejectCloudCertificate 
+} from './cloudbase';
 
 const STORAGE_KEY = 'suizhou_qxj_applications_v1';
-const USER_KEY = 'suizhou_qxj_current_user_v1';
 
 export function getStoredApplications(): Application[] {
   try {
@@ -47,6 +53,12 @@ export function updateApplication(updatedApp: Application): Application[] {
     newList = [updatedApp, ...list];
   }
   saveApplications(newList);
+
+  // 异步写入腾讯云开发 CloudBase 数据库 applications 集合
+  saveApplicationToCloud(updatedApp).catch((err) => {
+    console.warn('[CloudBase] 异步写入云端失败:', err);
+  });
+
   return newList;
 }
 
@@ -78,6 +90,11 @@ export function submitCertificateDraft(
     logs: [...app.logs, newLog]
   };
 
+  // 触发云端更新
+  submitCloudCertificateDraft(appId, cert, operatorName).catch((err) => {
+    console.warn('[CloudBase] 提交证明草稿至云数据库失败:', err);
+  });
+
   return updateApplication(updated);
 }
 
@@ -98,13 +115,14 @@ export function approveCertificate(
     time: timeStr,
     operator: operatorName,
     role: '分管局领导',
-    action: '审批通过，签署电子公章并正式签发',
+    action: '审批通过，签署电子公章并正式办结',
     note: comment || '审核属实，准予开具证明并归档。'
   };
 
+  // 8. 审批通过时状态改为 "已办结"
   const updated: Application = {
     ...app,
-    status: '已通过',
+    status: '已办结',
     certificate: {
       ...app.certificate,
       reviewComment: comment || '审核属实，准予开具证明。',
@@ -113,6 +131,11 @@ export function approveCertificate(
     },
     logs: [...app.logs, newLog]
   };
+
+  // 异步更新云数据库
+  approveCloudCertificate(appId, comment, operatorName).catch((err) => {
+    console.warn('[CloudBase] 审批通过同步云端失败:', err);
+  });
 
   return updateApplication(updated);
 }
@@ -138,6 +161,7 @@ export function rejectCertificate(
     note: `驳回理由：${reason}`
   };
 
+  // 7. 驳回时状态改为 "已驳回" 并记录驳回原因
   const updated: Application = {
     ...app,
     status: '已驳回',
@@ -146,9 +170,29 @@ export function rejectCertificate(
       rejectReason: reason,
       reviewedBy: operatorName,
       reviewDate: timeStr
-    } : undefined,
+    } : {
+      certNumber: '',
+      title: '气象灾害证明书',
+      content: '',
+      disasterTimeText: app.occurrenceTime,
+      location: app.location,
+      disasterType: app.disasterType,
+      obsDataSummary: '',
+      recipientOrg: '',
+      draftedBy: '',
+      draftDate: '',
+      rejectReason: reason,
+      reviewedBy: operatorName,
+      reviewDate: timeStr
+    },
     logs: [...app.logs, newLog]
   };
 
+  // 异步更新云数据库
+  rejectCloudCertificate(appId, reason, operatorName).catch((err) => {
+    console.warn('[CloudBase] 驳回同步云端失败:', err);
+  });
+
   return updateApplication(updated);
 }
+

@@ -19,7 +19,7 @@ export type DisasterType =
   | '龙卷风'
   | '雪灾冻雨';
 
-export type ApplicationStatus = '待受理' | '开具中' | '待审批' | '已通过' | '已驳回';
+export type ApplicationStatus = '待受理' | '开具中' | '待审批' | '已通过' | '已办结' | '已驳回';
 
 export interface MaterialItem {
   id: string;
@@ -57,6 +57,7 @@ export interface WorkflowLog {
 }
 
 export interface Application {
+  _id?: string;
   id: string;
   type: '个人' | '单位';
   applicant: string;

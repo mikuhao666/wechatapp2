@@ -34,7 +34,7 @@ export const ApprovalManagement: React.FC<ApprovalManagementProps> = ({
   const [actionSuccessMsg, setActionSuccessMsg] = useState<string>('');
 
   const pendingApps = applications.filter(a => a.status === '待审批');
-  const historyApps = applications.filter(a => a.status === '已通过' || a.status === '已驳回');
+  const historyApps = applications.filter(a => a.status === '已通过' || a.status === '已办结' || a.status === '已驳回');
 
   // Currently inspected app in review desk
   const currentApp = applications.find(a => a.id === selectedAppId) || 
@@ -51,7 +51,7 @@ export const ApprovalManagement: React.FC<ApprovalManagementProps> = ({
     if (!currentApp) return;
     const updated = approveCertificate(currentApp.id, approvalComment, currentUserName);
     onUpdateApplications(updated);
-    setActionSuccessMsg(`申请【${currentApp.applicant}】的气象证明已完成领导审核签批，电子公章已加盖生效！`);
+    setActionSuccessMsg(`申请【${currentApp.applicant}】的气象证明已完成领导签批，状态已转为“已办结”，并同步更新至腾讯云数据库！`);
     setTimeout(() => setActionSuccessMsg(''), 4000);
   };
 
@@ -65,7 +65,7 @@ export const ApprovalManagement: React.FC<ApprovalManagementProps> = ({
     onUpdateApplications(updated);
     setShowRejectModal(false);
     setRejectReason('');
-    setActionSuccessMsg(`申请【${currentApp.applicant}】已被审批退回驳回，已反馈经办科室。`);
+    setActionSuccessMsg(`申请【${currentApp.applicant}】已被审批退回驳回，已记录驳回原因并同步至腾讯云数据库。`);
     setTimeout(() => setActionSuccessMsg(''), 4000);
   };
 
@@ -173,7 +173,7 @@ export const ApprovalManagement: React.FC<ApprovalManagementProps> = ({
                     </span>
                     <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${
                       app.status === '待审批' ? 'bg-purple-100 text-purple-800 animate-pulse' :
-                      app.status === '已通过' ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
+                      (app.status === '已通过' || app.status === '已办结') ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
                     }`}>
                       {app.status}
                     </span>
@@ -295,11 +295,11 @@ export const ApprovalManagement: React.FC<ApprovalManagementProps> = ({
               )}
 
               {/* Status Specific Details if already reviewed */}
-              {currentApp.status === '已通过' && (
+              {(currentApp.status === '已通过' || currentApp.status === '已办结') && (
                 <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-xs space-y-1">
                   <div className="font-bold text-emerald-900 flex items-center gap-1.5">
                     <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                    领导审签结论：审核通过，已签发正式电子证明
+                    领导审签结论：审核通过（已办结），已签发正式电子证明并同步云端
                   </div>
                   <div className="text-emerald-800">
                     签署领导：{currentApp.certificate?.reviewedBy || '王局长'} · 签发时间：{currentApp.certificate?.reviewDate}

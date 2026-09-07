@@ -32,12 +32,13 @@ export const ApplicationList: React.FC<ApplicationListProps> = ({
     { label: '待受理', count: applications.filter(a => a.status === '待受理').length },
     { label: '开具中', count: applications.filter(a => a.status === '开具中').length },
     { label: '待审批', count: applications.filter(a => a.status === '待审批').length },
-    { label: '已通过', count: applications.filter(a => a.status === '已通过').length },
+    { label: '已办结', count: applications.filter(a => a.status === '已办结' || a.status === '已通过').length },
     { label: '已驳回', count: applications.filter(a => a.status === '已驳回').length },
   ];
 
   const filtered = applications.filter(app => {
-    const matchStatus = selectedStatus === '全部' || app.status === selectedStatus;
+    const matchStatus = selectedStatus === '全部' || 
+      (selectedStatus === '已办结' ? (app.status === '已办结' || app.status === '已通过') : app.status === selectedStatus);
     const q = searchQuery.trim().toLowerCase();
     const matchQuery = !q || 
       app.applicant.toLowerCase().includes(q) ||
@@ -57,7 +58,8 @@ export const ApplicationList: React.FC<ApplicationListProps> = ({
       case '待审批':
         return <span className="px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full text-[10px] font-medium ring-1 ring-amber-200">待审批</span>;
       case '已通过':
-        return <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-full text-[10px] font-medium">已发放</span>;
+      case '已办结':
+        return <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-full text-[10px] font-medium border border-emerald-200">已办结</span>;
       case '已驳回':
         return <span className="px-2 py-0.5 bg-rose-100 text-rose-700 rounded-full text-[10px] font-medium">已驳回</span>;
       default:
@@ -294,7 +296,7 @@ export const ApplicationList: React.FC<ApplicationListProps> = ({
                         )}
 
                         {/* Approved Action: Print */}
-                        {app.status === '已通过' && (
+                        {(app.status === '已通过' || app.status === '已办结') && (
                           <button
                             onClick={() => onPrintCertificate(app)}
                             className="px-2.5 py-1 text-xs bg-emerald-600 hover:bg-emerald-700 text-white rounded font-medium transition cursor-pointer"
@@ -313,8 +315,9 @@ export const ApplicationList: React.FC<ApplicationListProps> = ({
 
         {/* Table Footer */}
         <div className="px-5 py-3 bg-slate-50/50 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-2">
-          <div>
-            数据源直连：随州市气象局综合气象观测探测网 · 自动站全天候实时回传
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+            <span>云数据库：腾讯云开发 CloudBase（集合：applications）· 实时查询与同步</span>
           </div>
           <div className="flex items-center gap-3">
             <span>当前登录身份：<strong className="text-slate-800">{currentRole === 'staff' ? '工作人员（经办）' : '分管领导（终审）'}</strong></span>
